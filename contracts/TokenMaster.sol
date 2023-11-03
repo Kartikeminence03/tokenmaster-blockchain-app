@@ -30,22 +30,24 @@ contract TokenMaster is ERC721 {
     }
 
     constructor(
-        string memory _name,
+        string memory _name, 
         string memory _symbol
-    ) ERC721(_name, _symbol) {
-        owner = msg.sender;
-    }
+        ) 
+        ERC721(_name, _symbol){
+            owner = msg.sender;
+        }
 
-    function list(
-        string memory _name,
-        uint256 _cost,
-        uint256 _maxTickets,
-        string memory _date,
-        string memory _time,
-        string memory _location
-    ) public onlyOwner {
-        totalOccasions++;
-        occasions[totalOccasions] = Occasion(
+        function list (
+            string memory _name,
+            uint256 _cost,
+            uint256 _maxTickets,
+            string memory _date,
+            string memory _time,
+            string memory _location
+        ) public onlyOwner{
+
+            totalOccasions++;
+            occasions[totalOccasions]= Occasion(
             totalOccasions,
             _name,
             _cost,
@@ -54,43 +56,40 @@ contract TokenMaster is ERC721 {
             _date,
             _time,
             _location
-        );
-    }
+            );
+        }
 
-    function mint(uint256 _id, uint256 _seat) public payable {
-        // Require that _id is not 0 or less than total occasions...
-        require(_id != 0);
-        require(_id <= totalOccasions);
+        function mint(uint256 _id, uint256 _seat) public payable{
+            // Require that _id is not 0 or less than total occasions...
+            require(_id != 0);
+            require(_id <= totalOccasions);
 
-        // Require that ETH sent is greater than cost...
-        require(msg.value >= occasions[_id].cost);
+            // Require that ETH sent is greater than cost...
+            require(msg.value >= occasions[_id].cost);
 
-        // Require that the seat is not taken, and the seat exists...
-        require(seatTaken[_id][_seat] == address(0));
-        require(_seat <= occasions[_id].maxTickets);
+            // Require that the seat is not taken, and the seat exists...
+            require(seatTaken[_id][_seat] == address(0));
+            require(_seat <= occasions[_id].maxTickets);
 
-        occasions[_id].tickets -= 1; // <-- Update ticket count
+            occasions[_id].tickets -= 1; // <-- Update ticket count
+            hasBought[_id][msg.sender] = true; // <-- Update buying status
+            seatTaken[_id][_seat] = msg.sender; // <-- Assign seat
 
-        hasBought[_id][msg.sender] = true; // <-- Update buying status
-        seatTaken[_id][_seat] = msg.sender; // <-- Assign seat
+            seatsTaken[_id].push(_seat); // <-- Update seats currently taken
+            
+            _safeMint(msg.sender, totalSupply);
+        }
 
-        seatsTaken[_id].push(_seat); // <-- Update seats currently taken
+        function getOccasion(uint256 _id) public view returns (Occasion memory) {
+            return occasions[_id];
+        }
 
-        totalSupply++;
+        function getSeatsTaken(uint256 _id) public view returns (uint256[] memory) {
+            return seatsTaken[_id];
+        }
 
-        _safeMint(msg.sender, totalSupply);
-    }
-
-    function getOccasion(uint256 _id) public view returns (Occasion memory) {
-        return occasions[_id];
-    }
-
-    function getSeatsTaken(uint256 _id) public view returns (uint256[] memory) {
-        return seatsTaken[_id];
-    }
-
-    function withdraw() public onlyOwner {
-        (bool success, ) = owner.call{value: address(this).balance}("");
-        require(success);
-    }
+        function withdraw() public onlyOwner {
+            (bool success, ) = owner.call{value: address(this).balance}("");
+            require(success);
+        }
 }
